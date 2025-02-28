@@ -1,4 +1,4 @@
-import { User } from "../db.js"
+import { Account, User } from "../db.js"
 import jwt from "jsonwebtoken"
 import bcryptjs, { compareSync, hashSync } from "bcryptjs"
 import { signupSchema, signinSchema, updateUserSchema } from "../zod-validation/userSchema.zod.js"
@@ -9,14 +9,18 @@ export const createUser = async (req, res) => {
     if (!success) {
         return res.status(400).json({ message: "please provide all the fields" })
     }
-    const findUser = User.findOne({
-        userName
+    const findUser = await User.findOne({
+        userName: req.body.userName
     })
-    if (findUser._id) {
+    if (findUser) {
         return res.json({ message: "username already taken" })
     }
     const hashedPassword = await bcryptjs.hash(password, 10)
     const user = await User.create({ userName, firstName, lastName, password: hashedPassword })
+    await Account.create({
+        userId: user._id,
+        balance: 1 + Math.random() * 10000
+    })
     const token = jwt.sign({
         userId: user._id
     }, JWT_SECRET)
